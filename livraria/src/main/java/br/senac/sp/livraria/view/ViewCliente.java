@@ -13,6 +13,7 @@ import java.sql.SQLException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.List;
 
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -20,9 +21,14 @@ import javax.swing.JFormattedTextField;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import javax.swing.text.MaskFormatter;
 
 import br.senac.sp.livraria.dao.ClienteDAO;
@@ -31,6 +37,7 @@ import br.senac.sp.livraria.dao.InterfaceDAO;
 import br.senac.sp.livraria.enumeration.Escolaridade;
 import br.senac.sp.livraria.enumeration.EstadoCivil;
 import br.senac.sp.livraria.model.Cliente;
+import br.senac.sp.livraria.tablemodel.ClienteTableModel;
 
 public class ViewCliente extends JFrame implements ActionListener {
 	JLabel lbId, lbCpf, lbNome, lbNascimento, lbTelefone, lbEmail, lbEndereco, lbEscolaridade, lbEstadoCivil;
@@ -45,6 +52,12 @@ public class ViewCliente extends JFrame implements ActionListener {
 	Cliente cliente;
 	Connection conexao;
 	InterfaceDAO<Cliente> daoCliente;
+	JScrollPane spClientes;
+	JTable tableClientes;
+	ClienteTableModel modelCliente;
+	List<Cliente> clientes;
+	JButton btExcluir;
+	JButton btLimpar;
 	
 	public static void main(String[] args) {
 		new ViewCliente();
@@ -54,6 +67,7 @@ public class ViewCliente extends JFrame implements ActionListener {
 		try {
 			conexao = ConnectionFactory.getConexao();
 			daoCliente = new ClienteDAO(conexao);
+			clientes = daoCliente.listar();
 		} catch (SQLException e) {
 			JOptionPane.showMessageDialog(this, e.getMessage());
 			e.printStackTrace();
@@ -198,9 +212,36 @@ public class ViewCliente extends JFrame implements ActionListener {
 		
 		// botão de salvar
 		btSalvar = new JButton("Salvar");
-		btSalvar.setBounds(20, 420, 100, 30);
+		btSalvar.setBounds(50, 420, 100, 30);
 		btSalvar.setFont(fontePadrao);
 		btSalvar.setMnemonic('S');
+		
+		//botao exluir
+		btExcluir = new JButton("Excluir");
+		btExcluir.setBounds(200, 420, 100, 30);
+		btExcluir.setFont(fontePadrao);
+		btExcluir.setMnemonic('E');
+		
+		//botao limpar 
+		btLimpar = new JButton("Limpar");
+		btLimpar.setBounds(350, 420, 100, 30);
+		btLimpar.setFont(fontePadrao);
+		btLimpar.setMnemonic('L');
+		
+		
+		
+		
+		// model
+		modelCliente =  new ClienteTableModel(clientes);
+		
+		//TableCliente
+		tableClientes =  new JTable(modelCliente);
+		tableClientes.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		
+		
+		//JSCROLL
+		spClientes = new JScrollPane(tableClientes);
+		spClientes.setBounds(20, 470, 450,170);
 		
 		// adicionar componentes
 		Container base = getContentPane();
@@ -224,6 +265,9 @@ public class ViewCliente extends JFrame implements ActionListener {
 		base.add(lbEndereco);
 		base.add(taEndereco);
 		base.add(btSalvar);
+		base.add(btExcluir);
+		base.add(spClientes);
+		base.add(btLimpar);
 		
 		
 		// parâmetros da janela
@@ -252,6 +296,59 @@ public class ViewCliente extends JFrame implements ActionListener {
 			
 		});
 		
+		
+		//evento ao selecionar item na tabela
+		tableClientes.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+			
+			@Override
+			public void valueChanged(ListSelectionEvent e) {
+						int linha = tableClientes.getSelectedRow();
+						if (linha >= 0) {
+							cliente = clientes.get(linha);
+							tfId.setText(cliente.getId() + "");
+							tfNome.setText(cliente.getNome() + "");
+							tfCpf.setText(cliente.getCpf() + "");
+							tfEmail.setText(cliente.getEmail() + "");
+							taEndereco.setText(cliente.getEndereco() + "");
+							cbEscolaridade.setSelectedItem(cliente.getEscolaridade());
+							cbEstadoCivil.setSelectedItem(cliente.getEstadoCivil());
+							tfTelefone.setText(cliente.getTelefone());
+							SimpleDateFormat dataFormatada = new SimpleDateFormat("dd/MM/yyyy");
+							tfNascimento.setValue(dataFormatada.format(cliente.getNascimento().getTime()));
+							
+						}
+			}
+		});;
+		
+		
+		btExcluir.addActionListener(e ->{
+			if (cliente == null) {
+				JOptionPane.showMessageDialog(
+						ViewCliente.this, "Selecione um cliente para excluir", "Aviso",JOptionPane.WARNING_MESSAGE);
+			}else {
+				int resp = JOptionPane.showConfirmDialog(ViewCliente.this, 
+						"Deseja excluir o cliente: "+ cliente.getNome() + " ? ", "Confirmar exclusao",
+						JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+				if (resp == JOptionPane.YES_OPTION) {
+					try {
+						daoCliente.excluir(cliente.getId());
+						clientes = daoCliente.listar();
+						modelCliente.setLista(clientes);
+						modelCliente.fireTableDataChanged();
+						limpar();
+					} catch (Exception e2) {
+						// TODO: handle exception
+						JOptionPane.showMessageDialog(ViewCliente.this, e2.getMessage());
+						e2.printStackTrace();
+					}
+				}
+			}
+		});
+		
+		btLimpar.addActionListener(e ->{
+			limpar();
+		});
+		
 		btSalvar.addActionListener(e -> {
 			if (tfNome.getText().trim().isEmpty()) {
 				JOptionPane.showMessageDialog(this, "Informe o nome", "Erro", JOptionPane.WARNING_MESSAGE);
@@ -269,7 +366,11 @@ public class ViewCliente extends JFrame implements ActionListener {
 				JOptionPane.showMessageDialog(this, "Informe o estado civil", "Erro", JOptionPane.WARNING_MESSAGE);
 				cbEstadoCivil.requestFocus();
 			} else {
-				cliente = new Cliente();
+				
+				if (cliente == null) {
+					cliente = new Cliente();
+				}
+				
 				cliente.setNome(tfNome.getText());
 				
 				Calendar dataNasc = Calendar.getInstance();
@@ -279,6 +380,7 @@ public class ViewCliente extends JFrame implements ActionListener {
 				} catch (Exception e2) {
 					JOptionPane.showMessageDialog(this, "Erro ao converter");
 				}
+				cliente.setCpf(tfCpf.getText());
 				cliente.setNascimento(dataNasc);
 				cliente.setTelefone(tfTelefone.getText());
 				cliente.setEmail(tfEmail.getText());
@@ -286,9 +388,18 @@ public class ViewCliente extends JFrame implements ActionListener {
 				cliente.setEstadoCivil((EstadoCivil) cbEstadoCivil.getSelectedItem());
 				cliente.setEndereco(taEndereco.getText());
 				
-				try {
+				try { 
+					
+					if (cliente.getId()== 0) {
+						daoCliente.inserir(cliente);
+					}else {
+						daoCliente.alterar(cliente);
+					}
+					
 					conexao = ConnectionFactory.getConexao();
-					daoCliente.inserir(cliente);
+					clientes = daoCliente.listar();
+					modelCliente.setLista(clientes);
+					modelCliente.fireTableDataChanged();
 					limpar();
 				} catch (SQLException e2) {
 					JOptionPane.showMessageDialog(this, e2.getMessage());
@@ -309,6 +420,7 @@ public class ViewCliente extends JFrame implements ActionListener {
 		tfEmail.setText(null);;
 		cbEscolaridade.setSelectedIndex(-1);
 		cbEstadoCivil.setSelectedIndex(-1);
+		taEndereco.setText(null);
 		tfNome.requestFocus();
 	}
 

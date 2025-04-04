@@ -80,7 +80,7 @@ public class ClienteDAO implements InterfaceDAO<Cliente> {
 	public List<Cliente> listar() throws SQLException {
 		// TODO Auto-generated method stub
 				
-			sql = "select * from clientes order by nome";
+			sql = "select * from cliente order by nome";
 			stmt =  conexao.prepareStatement(sql);
 			List<Cliente> clientes = new ArrayList<Cliente>();
 			ResultSet rs = stmt.executeQuery();
@@ -88,7 +88,7 @@ public class ClienteDAO implements InterfaceDAO<Cliente> {
 			while (rs.next()) {
 				Cliente cliente = new Cliente();
 				cliente.setId(rs.getInt("id"));
-				cliente.setNome("nome");
+				cliente.setNome(rs.getString("nome"));
 				cliente.setCpf(rs.getString("cpf"));
 				cliente.setTelefone(rs.getString("telefone"));
 				cliente.setEmail(rs.getString("email"));
@@ -104,9 +104,39 @@ public class ClienteDAO implements InterfaceDAO<Cliente> {
 			}
 			
 			return clientes;
+					
 			
-			
-			
+	}
+	
+	
+	public Cliente buscar(int id) throws SQLException {
+		sql = "select * from cliente where id = ?";
+		stmt = conexao.prepareStatement(sql);
+		stmt.setInt(1, id);
+		Cliente cliente = null;
+		ResultSet rs = stmt.executeQuery();
+		
+		if(rs.next()) {
+			cliente = new Cliente();
+			cliente.setId(rs.getInt("id"));
+			cliente.setNome(rs.getString("nome"));
+			cliente.setCpf(rs.getString("cpf"));
+			cliente.setEmail(rs.getString("email"));
+			cliente.setTelefone(rs.getString("telefone"));
+			cliente.setEndereco(rs.getString("endereco"));
+			cliente.setEscolaridade
+				(Escolaridade.values()[rs.getInt("escolaridade")]);
+			cliente.setEstadoCivil
+				(EstadoCivil.values()[rs.getInt("estadocivil")]);
+			Calendar nasc = Calendar.getInstance();
+			nasc.setTimeInMillis(rs.getDate("nascimento").getTime());
+			cliente.setNascimento(nasc);			
+		}
+		
+		rs.close();
+		stmt.close();
+		return cliente;
+		
 	}
 
 }
