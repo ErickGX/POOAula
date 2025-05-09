@@ -9,5 +9,6 @@ public interface InterfaceDAO<T> {
 	public void alterar(T objeto) throws SQLException;
 	public void excluir(int id) throws SQLException;
 	public List<T> listar() throws SQLException;
+	public T buscar(int id) throws SQLException;
 
 }

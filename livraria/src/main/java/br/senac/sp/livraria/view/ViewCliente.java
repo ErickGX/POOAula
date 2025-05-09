@@ -32,7 +32,9 @@ import javax.swing.event.ListSelectionListener;
 import javax.swing.text.MaskFormatter;
 
 import br.senac.sp.livraria.dao.ClienteDAO;
+import br.senac.sp.livraria.dao.ClienteJpaDao;
 import br.senac.sp.livraria.dao.ConnectionFactory;
+import br.senac.sp.livraria.dao.EmFactory;
 import br.senac.sp.livraria.dao.InterfaceDAO;
 import br.senac.sp.livraria.enumeration.Escolaridade;
 import br.senac.sp.livraria.enumeration.EstadoCivil;
@@ -61,12 +63,14 @@ public class ViewCliente extends JFrame implements ActionListener {
 	
 	public static void main(String[] args) {
 		new ViewCliente();
+		//EmFactory.getEntityManager();
 	}
 	
 	public ViewCliente() {
 		try {
-			conexao = ConnectionFactory.getConexao();
-			daoCliente = new ClienteDAO(conexao);
+			// ao usar a conexao do JPA com EntityManager ela ja cria internamente
+			//conexao = ConnectionFactory.getConexao();
+			daoCliente = new ClienteJpaDao(EmFactory.getEntityManager());
 			clientes = daoCliente.listar();
 		} catch (SQLException e) {
 			JOptionPane.showMessageDialog(this, e.getMessage());
